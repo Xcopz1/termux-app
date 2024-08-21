@@ -1,2 +1,1403 @@
-env:
-  JITPACK_NDK_VERSION: "21.1.6352462"
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+<title>GitLab issues</title>
+<link href="/gitlab-org/gitlab/-/issues.atom?feed_token=glft-7e909eeab7fe318fca0ef070e2a4825d83a12cc269bc8493d4a18a8d34485cdb-20940659&amp;label_name=feature%3A%3Aaddition&amp;state=opened" rel="self" type="application/atom+xml"/>
+<link href="https://gitlab.com/gitlab-org/gitlab/-/issues" rel="alternate" type="text/html"/>
+<id>https://gitlab.com/gitlab-org/gitlab/-/issues</id>
+<updated>2024-08-21T07:07:27Z</updated>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480135</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480135"/>
+  <title>Switch from remote_development_agent_configs table to workspaces_agent_configs</title>
+  <updated>2024-08-21T07:07:27Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/1f037f9cf1dc4e8f713828abd5f86314896c956e2bc1c81b8b0eb2f60ce87ad4?s=80&amp;d=identicon"/>
+  <author>
+    <name>Chad Woolley</name>
+    <email>cwoolley@gitlab.com</email>
+  </author>
+  <summary>Switch from remote_development_agent_configs table to workspaces_agent_configs</summary>
+  <description>MR: Pending
+
+## Description
+
+Switch from `remote_development_agent_configs` table to `workspaces_agent_configs`. We need to rename this to reflect the rename of the category from `Remote Development` to `Workspaces`. See Technical Requir...</description>
+  <content>MR: Pending
+
+## Description
+
+Switch from `remote_development_agent_configs` table to `workspaces_agent_configs`. We need to rename this to reflect the rename of the category from `Remote Development` to `Workspaces`. See Technical Requirements section below for details.
+
+- See https://gitlab.com/groups/gitlab-org/-/epics/14186+ for overview and more context
+- See [Related Issues and MRs section in that epic](https://gitlab.com/groups/gitlab-org/-/epics/14186#related-issues-and-mrs) for related issues and MRs
+
+## Acceptance Criteria
+
+- [ ] Table is renamed
+- [ ] TODO: Follow-up issue created for deletion of old table in next release
+
+## Technical Requirements
+
+This is an alternate approach to a table rename than that described in https://docs.gitlab.com/ee/development/database/rename_database_tables.html. This is because we want to avoid the need to wait for the next release, but still ensure we accommodate zero-downtime deploys and schema cache concerns. Normally this might be difficult, but it should be possible and safe in our case because of some unique characteristics of this table.
+
+Here is the general plan, for a single MR:
+
+1. Make a first migration for the DDL to create the `workspaces_agent_configs` table.
+    - It should have an identical schema to the existing `remote_development_agent_configs` table, except that all the fields will be nullable (to save us the work of doing that separately in https://gitlab.com/gitlab-org/gitlab/-/issues/479699+).
+2. Make a second migration for the DML to copy all records from the existing `remote_development_agent_configs` to the new `workspaces_agent_configs` table.
+3. Make the changes to rename the `RemoteDevelopmentAgentConfig` model and all associated code to `WorkspacesAgentConfig`, so it points to the new table.
+
+## Considerations for zero-downtime deploys
+
+Regarding multi-version / zero-downtime deployments: The old version and the new version of the application will run at the same time in a zero-downtime deployment scenario. Normally, this is a concern and requires triggers for bidirectional syncing. However, that should not be required in this case:
+
+1. The update frequency of these tables is so infrequent, that I think it’s acceptable that we expect no new records will be written during the period of the zero-downtime deploy
+2. The nature of this table is that it’s essentially just a mirror of the Gitlab Agent for Kubernetes agent config YAML which lives in git, and we are hooking into that and denormalizing it into this table. So even if we did happen to miss an update, all changes will get picked up and written to the new table on the next update of the config file. And this process is already error prone (i.e. it will fail if any of the YAML updates are valid - that’s why we’re migrating to this table instead of the YAML file for config). Worst case, we just tell users to make any dummy edit/commit to the config file, and it will ensure that all changes are reflected in the table.
+
+## Justification
+
+After looking at the issues getting refined for https://gitlab.com/groups/gitlab-org/-/epics/14872+ and elsewhere, we decided that we should not defer this rename.
+
+Because we are going to continue to be adding many references in the code and also database foreign keys to the `remote_development_agent_config` table, which is just more code cleanup to do in the future.
+
+It also means unnecessary migrations and/or extra code to work around the incorrect name, which we wouldn't have to do otherwise, and also causing confusing discussions. See https://gitlab.com/gitlab-org/gitlab/-/issues/479688#note_2059496100 and https://gitlab.com/gitlab-org/gitlab/-/issues/479461#note_2059401288 for examples.
+
+Thus, this is not a piece of technical debt that we should let drag out, because it will continue compounding.
+
+## Design Requirements
+
+N/A - no UI changes</content>
+  <milestone>Next 1-3 releases</milestone>
+  <labels>
+    <label>Category:Workspaces</label>
+    <label>analytics instrumentation</label>
+    <label>devops::create</label>
+    <label>feature::addition</label>
+    <label>group::remote development</label>
+    <label>refined</label>
+    <label>section::dev</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+    <label>workspaces-workflow::unprioritized</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480089</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480089"/>
+  <title>Duo Workflow Service infer docker socket from current context</title>
+  <updated>2024-08-20T23:42:35Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/120073/avatar.png"/>
+  <author>
+    <name>Dylan Griffith</name>
+    <email>dgriffith@gitlab.com</email>
+  </author>
+  <summary>Duo Workflow Service infer docker socket from current context</summary>
+  <description>## Problem
+
+Right now we require users to configure the path to their `docker` socket in the VS Code extension when using Duo Workflow.
+
+## Solution
+
+It should be possible to infer the Docker socket the same way the `docker` command does...</description>
+  <content>## Problem
+
+Right now we require users to configure the path to their `docker` socket in the VS Code extension when using Duo Workflow.
+
+## Solution
+
+It should be possible to infer the Docker socket the same way the `docker` command does.
+
+You can see how this works by looking at these 2 files:
+
+```json
+$ cat ~/.docker/config.json | jq .
+{
+  "auths": {},
+  "credsStore": "osxkeychain",
+  "currentContext": "rancher-desktop"
+}
+
+
+$ cat ~/.docker/contexts/meta/**/meta.json | jq .
+{
+  "Name": "rancher-desktop",
+  "Metadata": {
+    "Description": "Rancher Desktop moby context"
+  },
+  "Endpoints": {
+    "docker": {
+      "Host": "unix:///Users/dylangriffith/.rd/docker.sock",
+      "SkipTLSVerify": false
+    }
+  }
+}
+
+$ ls -l ~/.docker/contexts/meta/**/meta.json
+-rw-r--r--  1 dylangriffith  staff   184B 14 Aug 09:19 /Users/dylangriffith/.docker/contexts/meta/&lt;some_hash&gt;/meta.json
+
+$ docker context ls
+NAME                DESCRIPTION                               DOCKER ENDPOINT                               ERROR
+default             Current DOCKER_HOST based configuration   unix:///var/run/docker.sock
+rancher-desktop *   Rancher Desktop moby context              unix:///Users/dylangriffith/.rd/docker.sock
+```
+
+Basically we would do the following:
+
+1. Load all of `~/.docker/contexts/meta/**/meta.json` files into memory and index them by `Name`
+2. Read the `currentContext` from `~/.docker/config.json`
+3. Match this `currentContext` against the `Name` found in the contexts
+4. Use the `Endpoints.docker.Host` from that</content>
+  <labels>
+    <label>Category:Duo Workflow</label>
+    <label>Duo Workflow::LSP</label>
+    <label>devops::ai-powered</label>
+    <label>feature::addition</label>
+    <label>group::ai framework</label>
+    <label>section::data-science</label>
+    <label>type::feature</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480051</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480051"/>
+  <title>Add pipeline status email changes to audit events</title>
+  <updated>2024-08-20T18:32:50Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/9d132c6cacb6b4b0cb0cd5dbb7c205aaafb6a6c3c5a6b50c523ae18b38f0b3fe?s=80&amp;d=identicon"/>
+  <author>
+    <name>Ben Prescott_</name>
+    <email></email>
+  </author>
+  <summary>Add pipeline status email changes to audit events</summary>
+  <description>&amp;lt;!-- This template is a great use for issues that are feature::additions or technical tasks for larger issues.--&amp;gt;
+
+### Proposal
+
+Audit changes to Settings &amp;gt; Integrations &amp;gt; [Pipeline status emails](https://docs.gitlab.com/ee/user/project/...</description>
+  <content>&lt;!-- This template is a great use for issues that are feature::additions or technical tasks for larger issues.--&gt;
+
+### Proposal
+
+Audit changes to Settings &gt; Integrations &gt; [Pipeline status emails](https://docs.gitlab.com/ee/user/project/integrations/pipeline_status_emails.html)
+
+I don't see this covered already either searching, nor in https://gitlab.com/groups/gitlab-org/-/epics/474+
+
+&lt;!-- Label reminders
+Use the following resources to find the appropriate labels:
+- Use only one tier label choosing the lowest tier this is intended for
+- https://gitlab.com/gitlab-org/gitlab/-/labels
+- https://about.gitlab.com/handbook/product/categories/features/
+--&gt;</content>
+  <labels>
+    <label>Category:Audit Events</label>
+    <label>GitLab Premium</label>
+    <label>GitLab Ultimate</label>
+    <label>audit_events::settings_configuration</label>
+    <label>customer</label>
+    <label>devops::foundations</label>
+    <label>documentation</label>
+    <label>feature::addition</label>
+    <label>group::import and integrate</label>
+    <label>section::core platform</label>
+    <label>type::feature</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480047</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480047"/>
+  <title>Receptive Agents GraphQL API</title>
+  <updated>2024-08-20T18:20:53Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/12689435/avatar.png"/>
+  <author>
+    <name>Timo Furrer</name>
+    <email>tfurrer@gitlab.com</email>
+  </author>
+  <summary>Receptive Agents GraphQL API</summary>
+  <description>Exactly what the title says - we need resolvers and mutations (create and delete) for Receptive Agents.
+
+The services are already in place covered in other issues of https://gitlab.com/groups/gitlab-org/-/epics/12180+</description>
+  <content>Exactly what the title says - we need resolvers and mutations (create and delete) for Receptive Agents.
+
+The services are already in place covered in other issues of https://gitlab.com/groups/gitlab-org/-/epics/12180+</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>analytics instrumentation</label>
+    <label>backend</label>
+    <label>devops::deploy</label>
+    <label>feature::addition</label>
+    <label>group::environments</label>
+    <label>section::cd</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480045</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480045"/>
+  <title>[Frontend] Add link to secret detection configuration page</title>
+  <updated>2024-08-21T06:08:01Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/fa1c42243418dc1b1aa7a67c7ffbffb2eb8043a347608a34a7539a0da10aefea?s=80&amp;d=identicon"/>
+  <author>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </author>
+  <summary>[Frontend] Add link to secret detection configuration page</summary>
+  <description>### Overview
+
+This issue tracks the ~frontend changes to link the project security configuration page to the secret detection configuration page
+
+### Design
+
+&amp;lt;details&amp;gt;
+&amp;lt;summary&amp;gt;Add setting icon with tooltip&amp;lt;/summary&amp;gt;
+
+![image](/uploads/2...</description>
+  <content>### Overview
+
+This issue tracks the ~frontend changes to link the project security configuration page to the secret detection configuration page
+
+### Design
+
+&lt;details&gt;
+&lt;summary&gt;Add setting icon with tooltip&lt;/summary&gt;
+
+![image](/uploads/27982266440f0745bee1ca830d7c82aa/image.png){width=805 height=235}
+
+&lt;/details&gt;
+
+Design issue: https://gitlab.com/gitlab-org/gitlab/-/issues/479344
+
+### Implementation Plan
+
+* [x] Add setting icon with `GlButton` to the security configuration page
+* [x] Add tooltip to the icon
+* [ ] Render the icon with the feature flag
+* [ ] Link the button to the configuration page
+* [ ] Add necessary specs</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Secret Detection</label>
+    <label>Deliverable</label>
+    <label>UX</label>
+    <label>analytics instrumentation</label>
+    <label>devops::secure</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::secret detection</label>
+    <label>secret detection allowlist</label>
+    <label>secret push protection</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+    <label>workflow::in dev</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Dheeraj Joshi</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480041</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480041"/>
+  <title>[Feature Flag] Add feature flag for allowlist</title>
+  <updated>2024-08-21T01:02:35Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/fa1c42243418dc1b1aa7a67c7ffbffb2eb8043a347608a34a7539a0da10aefea?s=80&amp;d=identicon"/>
+  <author>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </author>
+  <summary>[Feature Flag] Add feature flag for allowlist</summary>
+  <description>## Summary
+
+This issue is to add a new feature flag to roll out the frontend changes
+
+## Owners
+
+- Most appropriate Slack channel to reach out to: `#&amp;lt;slack-channel-of-dri-team&amp;gt;`
+- Best individual to reach out to: @&amp;lt;gitlab-username-of-dri...</description>
+  <content>## Summary
+
+This issue is to add a new feature flag to roll out the frontend changes
+
+## Owners
+
+- Most appropriate Slack channel to reach out to: `#&lt;slack-channel-of-dri-team&gt;`
+- Best individual to reach out to: @&lt;gitlab-username-of-dri&gt;
+
+## Expectations
+
+### What are we expecting to happen?
+
+&lt;!-- Describe the expected outcome when rolling out this feature --&gt;
+
+### What can go wrong and how would we detect it?
+
+&lt;!-- Data loss, broken pages, stability/availability impact? --&gt;
+
+&lt;!-- Which dashboards from https://dashboards.gitlab.net are most relevant? --&gt;
+
+## Rollout Steps
+
+Note: Please make sure to run the chatops commands in the Slack channel that gets impacted by the command.
+
+### Rollout on non-production environments
+
+- Verify the MR with the feature flag is merged to `master` and have been deployed to non-production environments with `/chatops run auto_deploy status &lt;merge-commit-of-your-feature&gt;`
+&lt;!-- Delete Incremental roll out if it is not relevant to this deploy --&gt;
+- [ ] Deploy the feature flag at a percentage (recommended percentage: 50%) with `/chatops run feature set &lt;feature-flag-name&gt; &lt;rollout-percentage&gt; --actors --dev --pre --staging --staging-ref`
+- [ ] Monitor that the error rates did not increase (repeat with a different percentage as necessary).
+&lt;!-- End of block for deletes --&gt;
+- [ ] Enable the feature globally on non-production environments with `/chatops run feature set &lt;feature-flag-name&gt; true --dev --pre --staging --staging-ref`
+- [ ] Verify that the feature works as expected.
+      The best environment to validate the feature in is [`staging-canary`](https://about.gitlab.com/handbook/engineering/infrastructure/environments/#staging-canary)
+      as this is the first environment deployed to. Make sure you are [configured to use canary](https://next.gitlab.com/).
+- [ ] If the feature flag causes end-to-end tests to fail, disable the feature flag on staging to avoid blocking [deployments](https://about.gitlab.com/handbook/engineering/deployments-and-releases/deployments/).
+   - See [`#qa-staging` Slack channel](https://gitlab.enterprise.slack.com/archives/CBS3YKMGD) and look for the following messages:
+      - test kicked off: `Feature flag &lt;feature-flag-name&gt; has been set to true on **gstg**`
+      - test result: `This pipeline was triggered due to toggling of &lt;feature-flag-name&gt; feature flag`
+
+For assistance with end-to-end test failures, please reach out via the [`#test-platform` Slack channel](https://gitlab.slack.com/archives/C3JJET4Q6). Note that end-to-end test failures on `staging-ref` [don't block deployments](https://about.gitlab.com/handbook/engineering/infrastructure/environments/staging-ref/#how-to-use-staging-ref).
+
+### Specific rollout on production
+
+For visibility, all `/chatops` commands that target production should be executed in the [`#production` Slack channel](https://gitlab.slack.com/archives/C101F3796)
+and cross-posted (with the command results) to the responsible team's Slack channel.
+
+- Ensure that the feature MRs have been deployed to both production and canary with `/chatops run auto_deploy status &lt;merge-commit-of-your-feature&gt;`
+- [ ] Depending on the [type of actor](https://docs.gitlab.com/ee/development/feature_flags/#feature-actors) you are using, pick one of these options:
+  - For **project-actor**: `/chatops run feature set --project=gitlab-org/gitlab,gitlab-org/gitlab-foss,gitlab-com/www-gitlab-com &lt;feature-flag-name&gt; true`
+  - For **group-actor**: `/chatops run feature set --group=gitlab-org,gitlab-com &lt;feature-flag-name&gt; true`
+  - For **user-actor**: `/chatops run feature set --user=&lt;gitlab-username-of-dri&gt; &lt;feature-flag-name&gt; true`
+- [ ] Verify that the feature works for the specific actors.
+
+### Preparation before global rollout
+
+- [ ] Set a milestone to this rollout issue to signal for enabling and removing the feature flag when it is stable.
+- [ ] Check if the feature flag change needs to be accompanied with a
+  [change management issue](https://about.gitlab.com/handbook/engineering/infrastructure/change-management/#feature-flags-and-the-change-management-process).
+  Cross link the issue here if it does.
+- [ ] Ensure that you or a representative in development can be available for at least 2 hours after feature flag updates in production.
+  If a different developer will be covering, or an exception is needed, please inform the oncall SRE by using the `@sre-oncall` Slack alias.
+- [ ] Ensure that documentation exists for the feature, and the [version history text](https://docs.gitlab.com/ee/development/documentation/feature_flags.html#add-version-history-text) has been updated.
+- [ ] Leave a comment on [the feature issue](&lt;feature-issue-link&gt;) announcing estimated time when this feature flag will be enabled on GitLab.com.
+- [ ] Ensure that any breaking changes have been announced following the [release post process](https://about.gitlab.com/handbook/marketing/blog/release-posts/#deprecations-removals-and-breaking-changes) to ensure GitLab customers are aware.
+- [ ] Notify the [`#support_gitlab-com` Slack channel](https://gitlab.slack.com/archives/C4XFU81LG) and your team channel ([more guidance when this is necessary in the dev docs](https://docs.gitlab.com/ee/development/feature_flags/controls.html#communicate-the-change)).
+- [ ] Ensure that the feature flag rollout plan is reviewed by another developer familiar with the domain.
+
+### Global rollout on production
+
+For visibility, all `/chatops` commands that target production should be executed in the [`#production` Slack channel](https://gitlab.slack.com/archives/C101F3796)
+and cross-posted (with the command results) to the responsible team's Slack channel (`#&lt;slack-channel-of-dri-team&gt;`).
+
+- [ ] (Optional) [Incrementally roll out](https://docs.gitlab.com/ee/development/feature_flags/controls.html#process) the feature on production environment.
+  - Between every step wait for at least 15 minutes and monitor the appropriate graphs on https://dashboards.gitlab.net.
+  - Perform **actor-based** rollout: `/chatops run feature set &lt;feature-flag-name&gt; &lt;rollout-percentage&gt; --actors`
+- [ ] Enable the feature globally on production environment: `/chatops run feature set &lt;feature-flag-name&gt; true`
+- [ ] Observe appropriate graphs on https://dashboards.gitlab.net and verify that services are not affected.
+- [ ] Leave a comment on [the feature issue](&lt;feature-issue-link&gt;) announcing that the feature has been globally enabled.
+- [ ] Wait for [at least one day for the verification term](https://about.gitlab.com/handbook/product-development-flow/feature-flag-lifecycle/#including-a-feature-behind-feature-flag-in-the-final-release).
+
+### (Optional) Release the feature with the feature flag
+
+**WARNING:** This approach has the downside that it makes it difficult for us to
+[clean up](https://docs.gitlab.com/ee/development/feature_flags/controls.html#cleaning-up) the flag.
+For example, on-premise users could disable the feature on their GitLab instance. But when you
+remove the flag at some point, they suddenly see the feature as enabled and they can't roll it back
+to the previous behavior. To avoid this potential breaking change, use this approach only for urgent
+matters.
+
+&lt;details&gt;&lt;summary&gt;See instructions if you're sure about enabling the feature globally through the feature flag definition&lt;/summary&gt;
+
+If you're still unsure whether the feature is [deemed stable](https://about.gitlab.com/handbook/product-development-flow/feature-flag-lifecycle/#including-a-feature-behind-feature-flag-in-the-final-release)
+but want to release it in the current milestone, you can change the default state of the feature flag to be enabled.
+To do so, follow these steps:
+
+- [ ] Create a merge request with the following changes. Ask for review and merge it.
+    - [ ] If feature was enabled for various actors, ensure the feature has been enabled globally on production `/chatops run feature get &lt;feature-flag-name&gt;`. If the feature has not been globally enabled then enable the feature globally using: `/chatops run feature set &lt;feature-flag-name&gt; true`
+    - [ ] Set the `default_enabled` attribute in [the feature flag definition](https://docs.gitlab.com/ee/development/feature_flags/#feature-flag-definition-and-validation) to `true`.
+    - [ ] Decide [which changelog entry](https://docs.gitlab.com/ee/development/feature_flags/#changelog) is needed.
+- [ ] Ensure that the default-enabling MR has been included in the release package.
+      If the merge request was deployed before [the monthly release was tagged](https://about.gitlab.com/handbook/engineering/releases/#self-managed-releases-1),
+      the feature can be officially announced in a release blog post: `/chatops run release check &lt;merge-request-url&gt; &lt;milestone&gt;`
+- [ ] Consider cleaning up the feature flag from all environments by running these chatops command in `#production` channel. Otherwise these settings may override the default enabled: `/chatops run feature delete &lt;feature-flag-name&gt; --dev --pre --staging --staging-ref --production`
+- [ ] Close [the feature issue](&lt;feature-issue-link&gt;) to indicate the feature will be released in the current milestone.
+- [ ] Set the next milestone to this rollout issue for scheduling [the flag removal](#release-the-feature).
+- [ ] (Optional) You can [create a separate issue](https://gitlab.com/gitlab-org/gitlab/-/issues/new?issuable_template=Feature%20Flag%20Cleanup) for scheduling the steps below to [Release the feature](#release-the-feature).
+    - [ ] Set the title to "[Feature flag] Cleanup `&lt;feature-flag-name&gt;`".
+    - [ ] Execute the `/copy_metadata &lt;this-rollout-issue-link&gt;` quick action to copy the labels from this rollout issue.
+    - [ ] Link this rollout issue as a related issue.
+    - [ ] Close this rollout issue.
+
+&lt;/details&gt;
+
+### Release the feature
+
+After the feature has been [deemed stable](https://about.gitlab.com/handbook/product-development-flow/feature-flag-lifecycle/#including-a-feature-behind-feature-flag-in-the-final-release),
+the [clean up](https://docs.gitlab.com/ee/development/feature_flags/controls.html#cleaning-up)
+should be done as soon as possible to permanently enable the feature and reduce complexity in the
+codebase.
+
+You can either [create a follow-up issue for Feature Flag Cleanup](https://gitlab.com/gitlab-org/gitlab/-/issues/new?issuable_template=Feature%20Flag%20Cleanup) or use the checklist below in this same issue.
+
+&lt;!-- The checklist here is to help stakeholders keep track of the feature flag status --&gt;
+- [ ] Create a merge request to remove the `&lt;feature-flag-name&gt;` feature flag. Ask for review/approval/merge as usual. The MR should include the following changes:
+    - Remove all references to the feature flag from the codebase.
+    - Remove the YAML definitions for the feature from the repository.
+    - Create [a changelog entry](https://docs.gitlab.com/ee/development/feature_flags/#changelog).
+- [ ] Ensure that the cleanup MR has been included in the release package.
+      If the merge request was deployed before [the monthly release was tagged](https://about.gitlab.com/handbook/engineering/releases/#self-managed-releases-1),
+      the feature can be officially announced in a release blog post: `/chatops run release check &lt;merge-request-url&gt; &lt;milestone&gt;`
+- [ ] Close [the feature issue](&lt;feature-issue-link&gt;) to indicate the feature will be released in the current milestone.
+- [ ] Clean up the feature flag from all environments by running these chatops command in `#production` channel: `/chatops run feature delete &lt;feature-flag-name&gt; --dev --pre --staging --staging-ref --production`
+- [ ] Close this rollout issue.
+
+## Rollback Steps
+
+- [ ] This feature can be disabled on production by running the following Chatops command:
+
+```
+/chatops run feature set &lt;feature-flag-name&gt; false
+```
+
+- [ ] Disable the feature flag on non-production environments:
+
+```
+/chatops run feature set &lt;feature-flag-name&gt; false --dev --pre --staging --staging-ref
+```
+
+- [ ] Delete feature flag from all environments:
+
+```
+/chatops run feature delete &lt;feature-flag-name&gt; --dev --pre --staging --staging-ref --production
+```
+
+&lt;!-- Uncomment the appropriate type label
+/label ~"type::feature" ~"feature::addition"
+/label ~"type::maintenance"
+/label ~"type::bug"
+--&gt;</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Secret Detection</label>
+    <label>Deliverable</label>
+    <label>UX</label>
+    <label>analytics instrumentation</label>
+    <label>devops::secure</label>
+    <label>feature flag</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::secret detection</label>
+    <label>secret detection allowlist</label>
+    <label>secret push protection</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Dheeraj Joshi</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </assignee>
+  <due_date>2024-09-03</due_date>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480035</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480035"/>
+  <title>[Frontend] Add delete allowlist modal</title>
+  <updated>2024-08-21T01:02:35Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/fa1c42243418dc1b1aa7a67c7ffbffb2eb8043a347608a34a7539a0da10aefea?s=80&amp;d=identicon"/>
+  <author>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </author>
+  <summary>[Frontend] Add delete allowlist modal</summary>
+  <description>### Overview
+
+This issue tracks the ~frontend changes to allow users to delete an allowlist.
+
+### Design
+
+&amp;lt;details&amp;gt;
+&amp;lt;summary&amp;gt;Delete modals&amp;lt;/summary&amp;gt;
+
+![image](/uploads/64be0333fa3a02e372078b41abf4fa7b/image.png){width=637 height=206}
+![i...</description>
+  <content>### Overview
+
+This issue tracks the ~frontend changes to allow users to delete an allowlist.
+
+### Design
+
+&lt;details&gt;
+&lt;summary&gt;Delete modals&lt;/summary&gt;
+
+![image](/uploads/64be0333fa3a02e372078b41abf4fa7b/image.png){width=637 height=206}
+![image](/uploads/c78e9482013f37c211e909980615f300/image.png){width=645 height=248}
+![image](/uploads/584a7bc0bd1656b3e3c3cc682c013e96/image.png){width=723 height=300}
+
+&lt;/details&gt;
+
+Design issue: https://gitlab.com/gitlab-org/gitlab/-/issues/479344
+
+### Implementation Plan
+
+* [ ] Add a new configurable modal
+* [ ] Implement various variant based on allowlist type
+* [ ] Add `delete` option to the options list
+* [ ] Add specs</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Secret Detection</label>
+    <label>Deliverable</label>
+    <label>UX</label>
+    <label>analytics instrumentation</label>
+    <label>devops::secure</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::secret detection</label>
+    <label>secret detection allowlist</label>
+    <label>secret push protection</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Dheeraj Joshi</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480034</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480034"/>
+  <title>[Frontend] Render allowlist details in a drawer</title>
+  <updated>2024-08-21T01:02:37Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/fa1c42243418dc1b1aa7a67c7ffbffb2eb8043a347608a34a7539a0da10aefea?s=80&amp;d=identicon"/>
+  <author>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </author>
+  <summary>[Frontend] Render allowlist details in a drawer</summary>
+  <description>### Overview
+
+This issue tracks the ~frontend changes to render the allowlist details in a drawer.
+
+### Design
+
+&amp;lt;details&amp;gt;
+&amp;lt;summary&amp;gt;Render allowlist item&amp;lt;/summary&amp;gt;
+
+![image](/uploads/60fc32c34de89c1c71ed585505600abe/image.png){width=501 h...</description>
+  <content>### Overview
+
+This issue tracks the ~frontend changes to render the allowlist details in a drawer.
+
+### Design
+
+&lt;details&gt;
+&lt;summary&gt;Render allowlist item&lt;/summary&gt;
+
+![image](/uploads/60fc32c34de89c1c71ed585505600abe/image.png){width=501 height=776}
+
+&lt;/details&gt;
+
+Design issue: https://gitlab.com/gitlab-org/gitlab/-/issues/479344
+
+### Implementation Plan
+
+* [ ] Add ~GraphQL query to fetch the details
+* [ ] Render allowlist details in a drawer
+* [ ] Make the fields not editable
+* [ ] Add specs</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Secret Detection</label>
+    <label>Deliverable</label>
+    <label>UX</label>
+    <label>analytics instrumentation</label>
+    <label>devops::secure</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::secret detection</label>
+    <label>secret detection allowlist</label>
+    <label>secret push protection</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Dheeraj Joshi</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480031</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480031"/>
+  <title>[Frontend] Add capability to update an allowlist item</title>
+  <updated>2024-08-21T01:02:38Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/fa1c42243418dc1b1aa7a67c7ffbffb2eb8043a347608a34a7539a0da10aefea?s=80&amp;d=identicon"/>
+  <author>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </author>
+  <summary>[Frontend] Add capability to update an allowlist item</summary>
+  <description>### Overview
+
+This issue tracks the ~frontend changes to allow users to update an existing allowlist item in the drawer
+
+### Design
+
+&amp;lt;details&amp;gt;
+&amp;lt;summary&amp;gt;Update existing item&amp;lt;/summary&amp;gt;
+
+![image](/uploads/6c5e72715f40d8c7417e2a0ea6b4d6a1/im...</description>
+  <content>### Overview
+
+This issue tracks the ~frontend changes to allow users to update an existing allowlist item in the drawer
+
+### Design
+
+&lt;details&gt;
+&lt;summary&gt;Update existing item&lt;/summary&gt;
+
+![image](/uploads/6c5e72715f40d8c7417e2a0ea6b4d6a1/image.png){width=453 height=828}
+
+&lt;/details&gt;
+
+Design issue: https://gitlab.com/gitlab-org/gitlab/-/issues/479344
+
+### Implementation Plan
+
+* [ ] Add edit capability to the existing `GlForm` fields.
+* [ ] Add ~GraphQL mutation to update an item
+* [ ] Implement the cache to render the updated values
+* [ ] Add specs</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Secret Detection</label>
+    <label>Deliverable</label>
+    <label>UX</label>
+    <label>analytics instrumentation</label>
+    <label>devops::secure</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::secret detection</label>
+    <label>secret detection allowlist</label>
+    <label>secret push protection</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Dheeraj Joshi</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480029</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480029"/>
+  <title>[Frontend] Add form to create new allowlist item</title>
+  <updated>2024-08-21T01:02:40Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/fa1c42243418dc1b1aa7a67c7ffbffb2eb8043a347608a34a7539a0da10aefea?s=80&amp;d=identicon"/>
+  <author>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </author>
+  <summary>[Frontend] Add form to create new allowlist item</summary>
+  <description>### Overview
+
+This issue tracks the ~frontend changes to allow users to add new allowlist items using drawer approach.
+
+### Design
+
+&amp;lt;details&amp;gt;
+&amp;lt;summary&amp;gt;Add new item&amp;lt;/summary&amp;gt;
+
+![image](/uploads/9713d2356bd813e568b91f0dd3f7c117/image.png){...</description>
+  <content>### Overview
+
+This issue tracks the ~frontend changes to allow users to add new allowlist items using drawer approach.
+
+### Design
+
+&lt;details&gt;
+&lt;summary&gt;Add new item&lt;/summary&gt;
+
+![image](/uploads/9713d2356bd813e568b91f0dd3f7c117/image.png){width=394 height=830}
+
+&lt;/details&gt;
+
+Design issue: https://gitlab.com/gitlab-org/gitlab/-/issues/479344
+
+### Implementation Plan
+
+* [ ] Implement new form using `GlForm`
+* [ ] Add ~GraphQL mutation to add new item
+* [ ] Render the form in the Drawer using `GlDrawer`
+* [ ] Add specs</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Secret Detection</label>
+    <label>Deliverable</label>
+    <label>UX</label>
+    <label>analytics instrumentation</label>
+    <label>devops::secure</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::secret detection</label>
+    <label>secret detection allowlist</label>
+    <label>secret push protection</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Dheeraj Joshi</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480027</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480027"/>
+  <title>[Frontend] List all Allowlist items in a table with Pagination support</title>
+  <updated>2024-08-21T01:02:41Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/fa1c42243418dc1b1aa7a67c7ffbffb2eb8043a347608a34a7539a0da10aefea?s=80&amp;d=identicon"/>
+  <author>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </author>
+  <summary>[Frontend] List all Allowlist items in a table with Pagination support</summary>
+  <description>### Overview
+
+This issue tracks the ~frontend changes to display all saved allowlist items.
+
+### Design
+
+&amp;lt;details&amp;gt;
+&amp;lt;summary&amp;gt;List of items&amp;lt;/summary&amp;gt;
+
+![image](/uploads/2c01a940a2c1bdd957c495108375d868/image.png){width=1213 height=743}
+
+&amp;lt;/...</description>
+  <content>### Overview
+
+This issue tracks the ~frontend changes to display all saved allowlist items.
+
+### Design
+
+&lt;details&gt;
+&lt;summary&gt;List of items&lt;/summary&gt;
+
+![image](/uploads/2c01a940a2c1bdd957c495108375d868/image.png){width=1213 height=743}
+
+&lt;/details&gt;
+
+Design issue: https://gitlab.com/gitlab-org/gitlab/-/issues/479344
+
+### Implementation Plan
+
+* [ ] Add ~GraphQL query to fetch all allowlist items
+* [ ] Display the list in `GlTable` format
+* [ ] Implement pagination using `GlPagination` and make necessary changes
+* [ ] Add button to add new item
+* [ ] Add specs</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Secret Detection</label>
+    <label>Deliverable</label>
+    <label>UX</label>
+    <label>analytics instrumentation</label>
+    <label>devops::secure</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::secret detection</label>
+    <label>secret detection allowlist</label>
+    <label>secret push protection</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Dheeraj Joshi</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480026</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480026"/>
+  <title>[Ban AI] Remove Feature Flags for Group, Admin, and Project Duo Settings</title>
+  <updated>2024-08-20T19:56:22Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/20539920/avatar.png"/>
+  <author>
+    <name>Lindsey Shelton</name>
+    <email></email>
+  </author>
+  <summary>[Ban AI] Remove Feature Flags for Group, Admin, and Project Duo Settings</summary>
+  <description>## Context
+
+We need to remove the following feature flags from the codebase when they have been rolled out 100%:
+- `ai_settings_vue_admin`
+- `ai_settings_vue_group`
+- `ai_settings_vue_project`
+
+:rotating_light: **THIS WORK IS CURRENTLY B...</description>
+  <content>## Context
+
+We need to remove the following feature flags from the codebase when they have been rolled out 100%:
+- `ai_settings_vue_admin`
+- `ai_settings_vue_group`
+- `ai_settings_vue_project`
+
+:rotating_light: **THIS WORK IS CURRENTLY BLOCKED BY THE FOLLOWING ISSUES:**
+- #470584 [Ban AI] Feature Flag Rollout admin and group settings
+- #471108 [Ban AI] Feature Flag Rollout project settings
+
+**Associated MRs:**
+- [Ban AI remove Duo Admin Settings FF](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/163055)
+- [Ban AI remove Duo Group Settings FF](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/163227)
+- [Ban AI remove Duo Project Settings FF](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/163218)
+
+## Scope of this issue
+
+- [ ] Remove `ai_settings_vue_admin` feature flag, and references in associated components/specs
+- [ ] Remove `ai_settings_vue_group` feature flag, and references in associated components/specs
+- [ ] Remove `ai_settings_vue_project` feature flag, and references in associated components/specs</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Deliverable</label>
+    <label>devops::ai-powered</label>
+    <label>feature flag</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::ai framework</label>
+    <label>section::data-science</label>
+    <label>type::feature</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Lindsey Shelton</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Lindsey Shelton</name>
+    <email></email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480024</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480024"/>
+  <title>[Frontend] Add empty state for secret detection configuration</title>
+  <updated>2024-08-21T01:02:42Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/fa1c42243418dc1b1aa7a67c7ffbffb2eb8043a347608a34a7539a0da10aefea?s=80&amp;d=identicon"/>
+  <author>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </author>
+  <summary>[Frontend] Add empty state for secret detection configuration</summary>
+  <description>### Overview
+
+This issue tracks the ~frontend changes to introduce the empty state for configuration Secret Detection.
+
+### Design
+
+&amp;lt;details&amp;gt;&amp;lt;summary&amp;gt;Empty state&amp;lt;/summary&amp;gt;
+![image](/uploads/7189d415b775cb37beff64a4cc69c9ab/image.png){wid...</description>
+  <content>### Overview
+
+This issue tracks the ~frontend changes to introduce the empty state for configuration Secret Detection.
+
+### Design
+
+&lt;details&gt;&lt;summary&gt;Empty state&lt;/summary&gt;
+![image](/uploads/7189d415b775cb37beff64a4cc69c9ab/image.png){width=1125 height=760}
+&lt;/details&gt;
+
+Design issue: https://gitlab.com/gitlab-org/gitlab/-/issues/479344 
+
+### Implementation Plan
+
+* [ ] Add a new breadcrumb option "Secret detection configuration"
+* [ ] Add a single tab for "Allowlist" 
+* [ ] Amend count next to the tab title
+* [ ] Add empty state log with description and CTA to add new item
+* [ ] Add new specs</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Secret Detection</label>
+    <label>Deliverable</label>
+    <label>UX</label>
+    <label>analytics instrumentation</label>
+    <label>devops::secure</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::secret detection</label>
+    <label>secret detection allowlist</label>
+    <label>secret push protection</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Dheeraj Joshi</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Dheeraj Joshi</name>
+    <email></email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480017</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480017"/>
+  <title>Unified Backups: Metadata display and validation command</title>
+  <updated>2024-08-21T01:02:35Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/2293/avatar.png"/>
+  <author>
+    <name>Gabriel Mazetto</name>
+    <email></email>
+  </author>
+  <summary>Unified Backups: Metadata display and validation command</summary>
+  <description>### Proposal
+
+When handling backups, either in Portable or Cloud-based format, we should have tools to read the stored metadata a validate (when that makes sense) that the references exists and are valid/consistent.
+
+In the case of Porta...</description>
+  <content>### Proposal
+
+When handling backups, either in Portable or Cloud-based format, we should have tools to read the stored metadata a validate (when that makes sense) that the references exists and are valid/consistent.
+
+In the case of Portable Backups, it can be as simple as looking whether resources exist, or if we are using `.7z` format, rely on the archive verification functionality (to make sure its not corrupt).
+
+In case of the Cloud Backups, check that the referred resources are still present (haven't expired or haven't been manually deleted by the user), to ensure a Backup described by the metadata can still be restored.
+
+We should also look at providing a "human display" version of the data inside it (perhaps a simple summary of what that backup contains, creation data, gitlab version, etc).</content>
+  <labels>
+    <label>Category:Backup/Restore of GitLab instances</label>
+    <label>GitLab Free</label>
+    <label>devops::systems</label>
+    <label>feature::addition</label>
+    <label>group::geo</label>
+    <label>section::core platform</label>
+    <label>type::feature</label>
+    <label>workflow::validation backlog</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480015</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480015"/>
+  <title>Create Cloud-based backup metadata</title>
+  <updated>2024-08-21T01:02:37Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/2293/avatar.png"/>
+  <author>
+    <name>Gabriel Mazetto</name>
+    <email></email>
+  </author>
+  <summary>Create Cloud-based backup metadata</summary>
+  <description>### Proposal
+
+PLACEHOLDER
+
+Based on the investigation done in: https://gitlab.com/gitlab-org/gitlab/-/issues/475124 implement the metadata logic in the codebase to be used by each Cloud-based resource.</description>
+  <content>### Proposal
+
+PLACEHOLDER
+
+Based on the investigation done in: https://gitlab.com/gitlab-org/gitlab/-/issues/475124 implement the metadata logic in the codebase to be used by each Cloud-based resource.</content>
+  <labels>
+    <label>Category:Backup/Restore of GitLab instances</label>
+    <label>GitLab Free</label>
+    <label>devops::systems</label>
+    <label>feature::addition</label>
+    <label>group::geo</label>
+    <label>section::core platform</label>
+    <label>type::feature</label>
+    <label>workflow::validation backlog</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/480000</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/480000"/>
+  <title>Add email notification setting changes to audit events</title>
+  <updated>2024-08-20T18:25:33Z</updated>
+  <media:thumbnail width="40" height="40" url="https://secure.gravatar.com/avatar/9d132c6cacb6b4b0cb0cd5dbb7c205aaafb6a6c3c5a6b50c523ae18b38f0b3fe?s=80&amp;d=identicon"/>
+  <author>
+    <name>Ben Prescott_</name>
+    <email></email>
+  </author>
+  <summary>Add email notification setting changes to audit events</summary>
+  <description>&amp;lt;!-- This template is a great use for issues that are feature::additions or technical tasks for larger issues.--&amp;gt;
+
+### Proposal
+
+Audit changes to Settings &amp;gt; General &amp;gt; Visibility, project features, permissions &amp;gt; Enable email notifications...</description>
+  <content>&lt;!-- This template is a great use for issues that are feature::additions or technical tasks for larger issues.--&gt;
+
+### Proposal
+
+Audit changes to Settings &gt; General &gt; Visibility, project features, permissions &gt; Enable email notifications 
+
+I don't see this covered already either searching, nor in https://gitlab.com/groups/gitlab-org/-/epics/474+
+
+&lt;!-- Use this section to explain the feature and how it will work. It can be helpful to add technical details, design proposals, and links to related epics or issues. --&gt;
+
+&lt;!-- Consider adding related issues and epics to this issue. You can also reference the Feature Proposal Template (https://gitlab.com/gitlab-org/gitlab/-/blob/master/.gitlab/issue_templates/Feature%20proposal%20-%20detailed.md) for additional details to consider adding to this issue. Additionally, as a data oriented organization, when your feature exits planning breakdown, consider adding the `What does success look like, and how can we measure that?` section.
+--&gt;
+
+&lt;!-- Label reminders
+Use the following resources to find the appropriate labels:
+- Use only one tier label choosing the lowest tier this is intended for
+- https://gitlab.com/gitlab-org/gitlab/-/labels
+- https://about.gitlab.com/handbook/product/categories/features/
+--&gt;</content>
+  <labels>
+    <label>Category:Audit Events</label>
+    <label>GitLab Premium</label>
+    <label>GitLab Ultimate</label>
+    <label>audit_events::settings_configuration</label>
+    <label>devops::govern</label>
+    <label>documentation</label>
+    <label>feature::addition</label>
+    <label>group::compliance</label>
+    <label>section::sec</label>
+    <label>type::feature</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/479997</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/479997"/>
+  <title>Include feedback form link in web view footer</title>
+  <updated>2024-08-20T19:30:29Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/1646689/avatar.png"/>
+  <author>
+    <name>David O'Regan</name>
+    <email>doregan@gitlab.com</email>
+  </author>
+  <summary>Include feedback form link in web view footer</summary>
+  <description>### Description
+
+Add a link to the feedback form (https://gitlab.fra1.qualtrics.com/jfe/form/SV_9GmCPTV7oH9KNuu) in the footer of the web view. This will make it easy for users to provide feedback, helping us continuously improve the Duo...</description>
+  <content>### Description
+
+Add a link to the feedback form (https://gitlab.fra1.qualtrics.com/jfe/form/SV_9GmCPTV7oH9KNuu) in the footer of the web view. This will make it easy for users to provide feedback, helping us continuously improve the Duo Workflow experience based on user input.</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Duo Workflow</label>
+    <label>Deliverable</label>
+    <label>Duo Workflow iteration 2</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>type::feature</label>
+    <label>workflow::in dev</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Andrew Fontaine</name>
+      <email>afontaine@gitlab.com</email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Andrew Fontaine</name>
+    <email>afontaine@gitlab.com</email>
+  </assignee>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/479996</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/479996"/>
+  <title>Implement cancel workflow functionality</title>
+  <updated>2024-08-21T01:02:43Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/1646689/avatar.png"/>
+  <author>
+    <name>David O'Regan</name>
+    <email>doregan@gitlab.com</email>
+  </author>
+  <summary>Implement cancel workflow functionality</summary>
+  <description>### Description
+
+Add a feature that allows users to cancel an ongoing workflow at any point. This will provide more control over the process and allow users to stop unnecessary or mistakenly started workflows, saving time and resources.</description>
+  <content>### Description
+
+Add a feature that allows users to cancel an ongoing workflow at any point. This will provide more control over the process and allow users to stop unnecessary or mistakenly started workflows, saving time and resources.</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Duo Workflow</label>
+    <label>Duo Workflow iteration 2</label>
+    <label>analytics instrumentation</label>
+    <label>automation:ml</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/479993</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/479993"/>
+  <title>Add ability to paste MR or Pipeline URL instead of copying IDs</title>
+  <updated>2024-08-21T01:02:44Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/1646689/avatar.png"/>
+  <author>
+    <name>David O'Regan</name>
+    <email>doregan@gitlab.com</email>
+  </author>
+  <summary>Add ability to paste MR or Pipeline URL instead of copying IDs</summary>
+  <description>### Description
+
+Enhance the user experience by allowing users to directly paste the URL of a Merge Request or Pipeline instead of manually copying and pasting IDs. This will streamline the workflow initiation process and reduce the chan...</description>
+  <content>### Description
+
+Enhance the user experience by allowing users to directly paste the URL of a Merge Request or Pipeline instead of manually copying and pasting IDs. This will streamline the workflow initiation process and reduce the chance of errors.</content>
+  <milestone>17.4</milestone>
+  <labels>
+    <label>Category:Duo Workflow</label>
+    <label>Duo Workflow iteration 2</label>
+    <label>analytics instrumentation</label>
+    <label>automation:ml</label>
+    <label>devops::plan</label>
+    <label>feature::addition</label>
+    <label>frontend</label>
+    <label>group::project management</label>
+    <label>section::dev</label>
+    <label>type::feature</label>
+    <label>workflow::ready for development</label>
+  </labels>
+</entry>
+<entry>
+  <id>https://gitlab.com/gitlab-org/gitlab/-/issues/479965</id>
+  <link href="https://gitlab.com/gitlab-org/gitlab/-/issues/479965"/>
+  <title>[Feature flag] Enable `search_issues_uses_work_items_index`</title>
+  <updated>2024-08-21T04:56:20Z</updated>
+  <media:thumbnail width="40" height="40" url="https://gitlab.com/uploads/-/system/user/avatar/12515079/avatar.png"/>
+  <author>
+    <name>Siddharth Dungarwal</name>
+    <email></email>
+  </author>
+  <summary>[Feature flag] Enable `search_issues_uses_work_items_index`</summary>
+  <description>&amp;lt;!-- Title suggestion: [Feature flag] Enable `search_issues_uses_work_items_index` --&amp;gt;
+
+## Summary
+
+This issue is to roll out [the feature](https://gitlab.com/gitlab-org/gitlab/-/issues/478007) on production,
+that is currently behind the...</description>
+  <content>&lt;!-- Title suggestion: [Feature flag] Enable `search_issues_uses_work_items_index` --&gt;
+
+## Summary
+
+This issue is to roll out [the feature](https://gitlab.com/gitlab-org/gitlab/-/issues/478007) on production,
+that is currently behind the `search_issues_uses_work_items_index` feature flag.
+
+## Owners
+
+- Most appropriate Slack channel to reach out to: `#g_global_search`
+- Best individual to reach out to: @sdungarwal
+
+## Expectations
+
+### What are we expecting to happen?
+
+&lt;!-- Describe the expected outcome when rolling out this feature --&gt;
+
+### What can go wrong and how would we detect it?
+
+&lt;!-- Data loss, broken pages, stability/availability impact? --&gt;
+
+&lt;!-- Which dashboards from https://dashboards.gitlab.net are most relevant? --&gt;
+
+## Rollout Steps
+
+Note: Please make sure to run the chatops commands in the Slack channel that gets impacted by the command.
+
+### Rollout on non-production environments
+
+- Verify the MR with the feature flag is merged to `master` and have been deployed to non-production environments with `/chatops run auto_deploy status &lt;merge-commit-of-your-feature&gt;`
+&lt;!-- Delete Incremental roll out if it is not relevant to this deploy --&gt;
+- [ ] Deploy the feature flag at a percentage (recommended percentage: 50%) with `/chatops run feature set &lt;feature-flag-name&gt; &lt;rollout-percentage&gt; --actors --dev --pre --staging --staging-ref`
+- [ ] Monitor that the error rates did not increase (repeat with a different percentage as necessary).
+&lt;!-- End of block for deletes --&gt;
+- [ ] Enable the feature globally on non-production environments with `/chatops run feature set &lt;feature-flag-name&gt; true --dev --pre --staging --staging-ref`
+- [ ] Verify that the feature works as expected.
+      The best environment to validate the feature in is [`staging-canary`](https://about.gitlab.com/handbook/engineering/infrastructure/environments/#staging-canary)
+      as this is the first environment deployed to. Make sure you are [configured to use canary](https://next.gitlab.com/).
+- [ ] If the feature flag causes end-to-end tests to fail, disable the feature flag on staging to avoid blocking [deployments](https://about.gitlab.com/handbook/engineering/deployments-and-releases/deployments/).
+   - See [`#qa-staging` Slack channel](https://gitlab.enterprise.slack.com/archives/CBS3YKMGD) and look for the following messages:
+      - test kicked off: `Feature flag &lt;feature-flag-name&gt; has been set to true on **gstg**`
+      - test result: `This pipeline was triggered due to toggling of &lt;feature-flag-name&gt; feature flag`
+
+For assistance with end-to-end test failures, please reach out via the [`#test-platform` Slack channel](https://gitlab.slack.com/archives/C3JJET4Q6). Note that end-to-end test failures on `staging-ref` [don't block deployments](https://about.gitlab.com/handbook/engineering/infrastructure/environments/staging-ref/#how-to-use-staging-ref).
+
+### Specific rollout on production
+
+For visibility, all `/chatops` commands that target production should be executed in the [`#production` Slack channel](https://gitlab.slack.com/archives/C101F3796)
+and cross-posted (with the command results) to the responsible team's Slack channel.
+
+- Ensure that the feature MRs have been deployed to both production and canary with `/chatops run auto_deploy status &lt;merge-commit-of-your-feature&gt;`
+- [ ] Depending on the [type of actor](https://docs.gitlab.com/ee/development/feature_flags/#feature-actors) you are using, pick one of these options:
+  - For **project-actor**: `/chatops run feature set --project=gitlab-org/gitlab,gitlab-org/gitlab-foss,gitlab-com/www-gitlab-com &lt;feature-flag-name&gt; true`
+  - For **group-actor**: `/chatops run feature set --group=gitlab-org,gitlab-com &lt;feature-flag-name&gt; true`
+  - For **user-actor**: `/chatops run feature set --user=&lt;gitlab-username-of-dri&gt; &lt;feature-flag-name&gt; true`
+- [ ] Verify that the feature works for the specific actors.
+
+### Preparation before global rollout
+
+- [ ] Set a milestone to this rollout issue to signal for enabling and removing the feature flag when it is stable.
+- [ ] Check if the feature flag change needs to be accompanied with a
+  [change management issue](https://about.gitlab.com/handbook/engineering/infrastructure/change-management/#feature-flags-and-the-change-management-process).
+  Cross link the issue here if it does.
+- [ ] Ensure that you or a representative in development can be available for at least 2 hours after feature flag updates in production.
+  If a different developer will be covering, or an exception is needed, please inform the oncall SRE by using the `@sre-oncall` Slack alias.
+- [ ] Ensure that documentation exists for the feature, and the [version history text](https://docs.gitlab.com/ee/development/documentation/feature_flags.html#add-version-history-text) has been updated.
+- [ ] Leave a comment on [the feature issue](&lt;feature-issue-link&gt;) announcing estimated time when this feature flag will be enabled on GitLab.com.
+- [ ] Ensure that any breaking changes have been announced following the [release post process](https://about.gitlab.com/handbook/marketing/blog/release-posts/#deprecations-removals-and-breaking-changes) to ensure GitLab customers are aware.
+- [ ] Notify the [`#support_gitlab-com` Slack channel](https://gitlab.slack.com/archives/C4XFU81LG) and your team channel ([more guidance when this is necessary in the dev docs](https://docs.gitlab.com/ee/development/feature_flags/controls.html#communicate-the-change)).
+- [ ] Ensure that the feature flag rollout plan is reviewed by another developer familiar with the domain.
+
+### Global rollout on production
+
+For visibility, all `/chatops` commands that target production should be executed in the [`#production` Slack channel](https://gitlab.slack.com/archives/C101F3796)
+and cross-posted (with the command results) to the responsible team's Slack channel (`#&lt;slack-channel-of-dri-team&gt;`).
+
+- [ ] (Optional) [Incrementally roll out](https://docs.gitlab.com/ee/development/feature_flags/controls.html#process) the feature on production environment.
+  - Between every step wait for at least 15 minutes and monitor the appropriate graphs on https://dashboards.gitlab.net.
+  - Perform **actor-based** rollout: `/chatops run feature set &lt;feature-flag-name&gt; &lt;rollout-percentage&gt; --actors`
+- [ ] Enable the feature globally on production environment: `/chatops run feature set &lt;feature-flag-name&gt; true`
+- [ ] Observe appropriate graphs on https://dashboards.gitlab.net and verify that services are not affected.
+- [ ] Leave a comment on [the feature issue](&lt;feature-issue-link&gt;) announcing that the feature has been globally enabled.
+- [ ] Wait for [at least one day for the verification term](https://about.gitlab.com/handbook/product-development-flow/feature-flag-lifecycle/#including-a-feature-behind-feature-flag-in-the-final-release).
+
+### (Optional) Release the feature with the feature flag
+
+**WARNING:** This approach has the downside that it makes it difficult for us to
+[clean up](https://docs.gitlab.com/ee/development/feature_flags/controls.html#cleaning-up) the flag.
+For example, on-premise users could disable the feature on their GitLab instance. But when you
+remove the flag at some point, they suddenly see the feature as enabled and they can't roll it back
+to the previous behavior. To avoid this potential breaking change, use this approach only for urgent
+matters.
+
+&lt;details&gt;&lt;summary&gt;See instructions if you're sure about enabling the feature globally through the feature flag definition&lt;/summary&gt;
+
+If you're still unsure whether the feature is [deemed stable](https://about.gitlab.com/handbook/product-development-flow/feature-flag-lifecycle/#including-a-feature-behind-feature-flag-in-the-final-release)
+but want to release it in the current milestone, you can change the default state of the feature flag to be enabled.
+To do so, follow these steps:
+
+- [ ] Create a merge request with the following changes. Ask for review and merge it.
+    - [ ] If feature was enabled for various actors, ensure the feature has been enabled globally on production `/chatops run feature get &lt;feature-flag-name&gt;`. If the feature has not been globally enabled then enable the feature globally using: `/chatops run feature set &lt;feature-flag-name&gt; true`
+    - [ ] Set the `default_enabled` attribute in [the feature flag definition](https://docs.gitlab.com/ee/development/feature_flags/#feature-flag-definition-and-validation) to `true`.
+    - [ ] Decide [which changelog entry](https://docs.gitlab.com/ee/development/feature_flags/#changelog) is needed.
+- [ ] Ensure that the default-enabling MR has been included in the release package.
+      If the merge request was deployed before [the monthly release was tagged](https://about.gitlab.com/handbook/engineering/releases/#self-managed-releases-1),
+      the feature can be officially announced in a release blog post: `/chatops run release check &lt;merge-request-url&gt; &lt;milestone&gt;`
+- [ ] Consider cleaning up the feature flag from all environments by running these chatops command in `#production` channel. Otherwise these settings may override the default enabled: `/chatops run feature delete &lt;feature-flag-name&gt; --dev --pre --staging --staging-ref --production`
+- [ ] Close [the feature issue](&lt;feature-issue-link&gt;) to indicate the feature will be released in the current milestone.
+- [ ] Set the next milestone to this rollout issue for scheduling [the flag removal](#release-the-feature).
+- [ ] (Optional) You can [create a separate issue](https://gitlab.com/gitlab-org/gitlab/-/issues/new?issuable_template=Feature%20Flag%20Cleanup) for scheduling the steps below to [Release the feature](#release-the-feature).
+    - [ ] Set the title to "[Feature flag] Cleanup `&lt;feature-flag-name&gt;`".
+    - [ ] Execute the `/copy_metadata &lt;this-rollout-issue-link&gt;` quick action to copy the labels from this rollout issue.
+    - [ ] Link this rollout issue as a related issue.
+    - [ ] Close this rollout issue.
+
+&lt;/details&gt;
+
+### Release the feature
+
+After the feature has been [deemed stable](https://about.gitlab.com/handbook/product-development-flow/feature-flag-lifecycle/#including-a-feature-behind-feature-flag-in-the-final-release),
+the [clean up](https://docs.gitlab.com/ee/development/feature_flags/controls.html#cleaning-up)
+should be done as soon as possible to permanently enable the feature and reduce complexity in the
+codebase.
+
+You can either [create a follow-up issue for Feature Flag Cleanup](https://gitlab.com/gitlab-org/gitlab/-/issues/new?issuable_template=Feature%20Flag%20Cleanup) or use the checklist below in this same issue.
+
+&lt;!-- The checklist here is to help stakeholders keep track of the feature flag status --&gt;
+- [ ] Create a merge request to remove the `&lt;feature-flag-name&gt;` feature flag. Ask for review/approval/merge as usual. The MR should include the following changes:
+    - Remove all references to the feature flag from the codebase.
+    - Remove the YAML definitions for the feature from the repository.
+    - Create [a changelog entry](https://docs.gitlab.com/ee/development/feature_flags/#changelog).
+- [ ] Ensure that the cleanup MR has been included in the release package.
+      If the merge request was deployed before [the monthly release was tagged](https://about.gitlab.com/handbook/engineering/releases/#self-managed-releases-1),
+      the feature can be officially announced in a release blog post: `/chatops run release check &lt;merge-request-url&gt; &lt;milestone&gt;`
+- [ ] Close [the feature issue](&lt;feature-issue-link&gt;) to indicate the feature will be released in the current milestone.
+- [ ] Clean up the feature flag from all environments by running these chatops command in `#production` channel: `/chatops run feature delete &lt;feature-flag-name&gt; --dev --pre --staging --staging-ref --production`
+- [ ] Close this rollout issue.
+
+## Rollback Steps
+
+- [ ] This feature can be disabled on production by running the following Chatops command:
+
+```
+/chatops run feature set &lt;feature-flag-name&gt; false
+```
+
+- [ ] Disable the feature flag on non-production environments:
+
+```
+/chatops run feature set &lt;feature-flag-name&gt; false --dev --pre --staging --staging-ref
+```
+
+- [ ] Delete feature flag from all environments:
+
+```
+/chatops run feature delete &lt;feature-flag-name&gt; --dev --pre --staging --staging-ref --production
+```
+&lt;!-- Uncomment the appropriate type label
+/label ~"type::maintenance"
+/label ~"type::bug"
+--&gt;</content>
+  <labels>
+    <label>devops::data stores</label>
+    <label>feature flag</label>
+    <label>feature::addition</label>
+    <label>global search::advanced search</label>
+    <label>group::global search</label>
+    <label>section::core platform</label>
+    <label>type::feature</label>
+  </labels>
+  <assignees>
+    <assignee>
+      <name>Siddharth Dungarwal</name>
+      <email></email>
+    </assignee>
+  </assignees>
+  <assignee>
+    <name>Siddharth Dungarwal</name>
+    <email></email>
+  </assignee>
+</entry>
+</feed>
